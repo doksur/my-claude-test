@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>날씨 대시보드</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: linear-gradient(135deg, #4b6cb7, #182848);
+    transition: background 0.6s ease;
+    color: #fff;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 460px;
+  }
+
+  .card {
+    background: rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 24px;
+    padding: 28px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  }
+
+  h1 {
+    margin: 0 0 20px;
+    font-size: 22px;
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .search-row input {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 15px;
+    outline: none;
+  }
+
+  .search-row input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .search-row input:focus {
+    border-color: rgba(255, 255, 255, 0.8);
+  }
+
+  .search-row button {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 12px;
+    background: #ffca28;
+    color: #1a1a1a;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 15px;
+    transition: filter 0.15s, transform 0.1s;
+  }
+
+  .search-row button:hover { filter: brightness(1.08); }
+  .search-row button:active { transform: scale(0.97); }
+
+  .recent {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .recent button {
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .recent button:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  .unit-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 18px;
+  }
+
+  .unit-toggle button {
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .unit-toggle button.active {
+    background: #fff;
+    color: #182848;
+  }
+
+  .state-box {
+    min-height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .spinner {
+    width: 46px;
+    height: 46px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .error-box {
+    text-align: center;
+    background: rgba(255, 82, 82, 0.18);
+    border: 1px solid rgba(255, 120, 120, 0.5);
+    border-radius: 14px;
+    padding: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .error-box .emoji {
+    font-size: 32px;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .placeholder {
+    text-align: center;
+    opacity: 0.75;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .weather-content {
+    width: 100%;
+    text-align: center;
+  }
+
+  .city-name {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .date-text {
+    font-size: 12px;
+    opacity: 0.75;
+    margin-bottom: 10px;
+  }
+
+  .icon-big {
+    font-size: 84px;
+    line-height: 1;
+    margin: 6px 0;
+    filter: drop-shadow(0 6px 10px rgba(0,0,0,0.25));
+  }
+
+  .temp-main {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .desc-text {
+    font-size: 16px;
+    text-transform: capitalize;
+    opacity: 0.9;
+    margin-bottom: 18px;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .detail-item {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 12px 6px;
+  }
+
+  .detail-item .label {
+    font-size: 11px;
+    opacity: 0.75;
+    margin-bottom: 4px;
+  }
+
+  .detail-item .value {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  @media (max-width: 420px) {
+    .card { padding: 20px; }
+    .icon-big { font-size: 68px; }
+    .temp-main { font-size: 42px; }
+    .detail-item .value { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h1>🌤️ 날씨 대시보드</h1>
+
+      <div class="search-row">
+        <input id="cityInput" type="text" placeholder="도시 이름을 입력하세요 (예: Seoul)" autocomplete="off">
+        <button id="searchBtn">검색</button>
+      </div>
+
+      <div class="recent" id="recentBox"></div>
+
+      <div class="unit-toggle">
+        <button id="unitC" class="active">°C</button>
+        <button id="unitF">°F</button>
+      </div>
+
+      <div class="state-box" id="stateBox">
+        <div class="placeholder">도시 이름을 검색해서<br>현재 날씨를 확인해보세요 🔍</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const API_KEY = 'd206e641d89903c7d51625360d1ec28f';
+  const stateBox = document.getElementById('stateBox');
+  const cityInput = document.getElementById('cityInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const recentBox = document.getElementById('recentBox');
+  const unitCBtn = document.getElementById('unitC');
+  const unitFBtn = document.getElementById('unitF');
+
+  let unit = 'metric'; // metric = C, imperial = F
+  let lastData = null;
+  const RECENT_KEY = 'weatherDashboard_recentCities';
+
+  function getRecent() {
+    try {
+      return JSON.parse(localStorage.getItem(RECENT_KEY)) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveRecent(city) {
+    let list = getRecent().filter(c => c.toLowerCase() !== city.toLowerCase());
+    list.unshift(city);
+    list = list.slice(0, 5);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+    renderRecent();
+  }
+
+  function renderRecent() {
+    const list = getRecent();
+    recentBox.innerHTML = '';
+    list.forEach(city => {
+      const btn = document.createElement('button');
+      btn.textContent = city;
+      btn.addEventListener('click', () => fetchWeather(city));
+      recentBox.appendChild(btn);
+    });
+  }
+
+  function weatherMeta(main, id) {
+    // returns { icon, gradient }
+    const m = (main || '').toLowerCase();
+    if (m === 'clear') {
+      return { icon: '☀️', gradient: 'linear-gradient(135deg, #f6d365, #fda085)' };
+    }
+    if (m === 'clouds') {
+      if (id === 801) return { icon: '🌤️', gradient: 'linear-gradient(135deg, #89f7fe, #66a6ff)' };
+      return { icon: '☁️', gradient: 'linear-gradient(135deg, #757f9a, #d7dde8)' };
+    }
+    if (m === 'rain' || m === 'drizzle') {
+      return { icon: '🌧️', gradient: 'linear-gradient(135deg, #4b6cb7, #182848)' };
+    }
+    if (m === 'thunderstorm') {
+      return { icon: '⛈️', gradient: 'linear-gradient(135deg, #373b44, #4286f4)' };
+    }
+    if (m === 'snow') {
+      return { icon: '❄️', gradient: 'linear-gradient(135deg, #e6dada, #274046)' };
+    }
+    if (['mist', 'fog', 'haze', 'smoke', 'dust', 'sand', 'ash'].includes(m)) {
+      return { icon: '🌫️', gradient: 'linear-gradient(135deg, #bdc3c7, #2c3e50)' };
+    }
+    if (m === 'tornado' || m === 'squall') {
+      return { icon: '🌪️', gradient: 'linear-gradient(135deg, #606c88, #3f4c6b)' };
+    }
+    return { icon: '🌡️', gradient: 'linear-gradient(135deg, #4b6cb7, #182848)' };
+  }
+
+  function showLoading() {
+    stateBox.innerHTML = '<div class="spinner"></div>';
+  }
+
+  function showError(message) {
+    stateBox.innerHTML = `
+      <div class="error-box">
+        <span class="emoji">😥</span>
+        ${message}
+      </div>
+    `;
+  }
+
+  function showPlaceholder() {
+    stateBox.innerHTML = '<div class="placeholder">도시 이름을 검색해서<br>현재 날씨를 확인해보세요 🔍</div>';
+  }
+
+  function unitSymbol() {
+    return unit === 'metric' ? '°C' : '°F';
+  }
+
+  function speedUnit() {
+    return unit === 'metric' ? 'm/s' : 'mph';
+  }
+
+  function renderWeather(data) {
+    const main = data.weather[0].main;
+    const id = data.weather[0].id;
+    const desc = data.weather[0].description;
+    const meta = weatherMeta(main, id);
+
+    document.body.style.background = meta.gradient;
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+
+    stateBox.innerHTML = `
+      <div class="weather-content">
+        <div class="city-name">${data.name}${data.sys && data.sys.country ? ', ' + data.sys.country : ''}</div>
+        <div class="date-text">${dateStr}</div>
+        <div class="icon-big">${meta.icon}</div>
+        <div class="temp-main">${Math.round(data.main.temp)}${unitSymbol()}</div>
+        <div class="desc-text">${desc}</div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="label">체감 온도</div>
+            <div class="value">${Math.round(data.main.feels_like)}${unitSymbol()}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">습도</div>
+            <div class="value">${data.main.humidity}%</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">바람 속도</div>
+            <div class="value">${data.wind.speed} ${speedUnit()}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function fetchWeather(city) {
+    const trimmed = city.trim();
+    if (!trimmed) {
+      showError('도시 이름을 입력해 주세요.');
+      return;
+    }
+
+    showLoading();
+
+    try {
+      const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(trimmed)}&units=${unit}&lang=kr&appid=${API_KEY}`;
+      const res = await fetch(url);
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          showError(`"${trimmed}"의 날씨 정보를 찾을 수 없어요.<br>도시 이름을 다시 확인해 주세요.`);
+        } else if (res.status === 401) {
+          showError('API 키가 유효하지 않아요.<br>잠시 후 다시 시도해 주세요.');
+        } else {
+          showError('날씨 정보를 불러오는 중 문제가 발생했어요.<br>잠시 후 다시 시도해 주세요.');
+        }
+        return;
+      }
+
+      const data = await res.json();
+      lastData = data;
+      renderWeather(data);
+      saveRecent(data.name);
+      cityInput.value = '';
+    } catch (err) {
+      showError('네트워크 연결을 확인해 주세요.<br>인터넷 연결 상태가 불안정할 수 있어요.');
+    }
+  }
+
+  searchBtn.addEventListener('click', () => fetchWeather(cityInput.value));
+  cityInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') fetchWeather(cityInput.value);
+  });
+
+  unitCBtn.addEventListener('click', () => {
+    if (unit === 'metric') return;
+    unit = 'metric';
+    unitCBtn.classList.add('active');
+    unitFBtn.classList.remove('active');
+    if (lastData) fetchWeather(lastData.name);
+  });
+
+  unitFBtn.addEventListener('click', () => {
+    if (unit === 'imperial') return;
+    unit = 'imperial';
+    unitFBtn.classList.add('active');
+    unitCBtn.classList.remove('active');
+    if (lastData) fetchWeather(lastData.name);
+  });
+
+  renderRecent();
+</script>
+</body>
+</html>
